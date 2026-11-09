@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Response, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -47,7 +46,7 @@ HTML_CONTENT = """
     <h2>🔒 Access Password</h2>
     <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: -6px; margin-bottom: 18px;">အသုံးပြုရန် စကားဝှက် ရိုက်ထည့်ပါ</p>
     <input type="password" id="inputPwd" placeholder="Password ရိုက်ထည့်ပါ..." />
-    <button onclick="handleLogin()">ဝင်မည် (Enter)</button>
+    <button id="loginBtn" onclick="handleLogin()">ဝင်မည် (Enter)</button>
     <div id="login-err"></div>
   </div>
 
@@ -70,14 +69,30 @@ HTML_CONTENT = """
   <script>
     let savedPwd = sessionStorage.getItem("tts_auth") || "";
 
+    // စောစောက မှန်ထားပြီးသား ရှိမရှိ စစ်ဆေးခြင်း
     if (savedPwd) {
-      document.getElementById('loginBox').style.display = 'none';
-      document.getElementById('appBox').style.display = 'block';
+      checkSavedAuth();
     }
 
-    function handleLogin() {
+    async function checkSavedAuth() {
+      try {
+        const res = await fetch(`/verify?password=${encodeURIComponent(savedPwd)}`);
+        if (res.ok) {
+          document.getElementById('loginBox').style.display = 'none';
+          document.getElementById('appBox').style.display = 'block';
+        } else {
+          sessionStorage.removeItem("tts_auth");
+          savedPwd = "";
+        }
+      } catch (e) {
+        sessionStorage.removeItem("tts_auth");
+      }
+    }
+
+    async function handleLogin() {
       const pwd = document.getElementById('inputPwd').value.trim();
       const err = document.getElementById('login-err');
+      const btn = document.getElementById('loginBtn');
 
       if (!pwd) {
         err.style.color = '#ef4444';
@@ -85,10 +100,28 @@ HTML_CONTENT = """
         return;
       }
 
-      savedPwd = pwd;
-      sessionStorage.setItem("tts_auth", pwd);
-      document.getElementById('loginBox').style.display = 'none';
-      document.getElementById('appBox').style.display = 'block';
+      btn.disabled = true;
+      err.style.color = '#38bdf8';
+      err.innerText = "စစ်ဆေးနေပါသည်...";
+
+      try {
+        const res = await fetch(`/verify?password=${encodeURIComponent(pwd)}`);
+        if (res.ok) {
+          savedPwd = pwd;
+          sessionStorage.setItem("tts_auth", pwd);
+          err.innerText = "";
+          document.getElementById('loginBox').style.display = 'none';
+          document.getElementById('appBox').style.display = 'block';
+        } else {
+          err.style.color = '#ef4444';
+          err.innerText = "Password မှားယွင်းနေပါသည်။ ပြန်ရိုက်ပါ။";
+        }
+      } catch (e) {
+        err.style.color = '#ef4444';
+        err.innerText = "ဆာဗာနှင့် ချိတ်ဆက်၍ မရပါ";
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     function handleLogout() {
@@ -124,7 +157,7 @@ HTML_CONTENT = """
         if (res.status === 401) {
           handleLogout();
           document.getElementById('login-err').style.color = '#ef4444';
-          document.getElementById('login-err').innerText = "Password မှားယွင်းနေပါသည်။ ပြန်ရိုက်ပေးပါ။";
+          document.getElementById('login-err').innerText = "စကားဝှက် သက်တမ်းကုန်သွားပါပြီ။ ပြန်လည်ရိုက်ထည့်ပါ။";
           throw new Error("Password မှားယွင်းနေပါသည်");
         }
         if (!res.ok) throw new Error("အသံထုတ်မရပါ");
@@ -152,6 +185,15 @@ HTML_CONTENT = """
 @app.get("/", response_class=HTMLResponse)
 async def index():
     return HTML_CONTENT
+
+@app.get("/verify")
+async def verify_password(password: str = ""):
+    if password != MY_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password မှားယွင်းနေပါသည်"
+        )
+    return {"status": "ok"}
 
 @app.get("/tts")
 async def tts(text: str, voice: str = "my-MM-ThihaNeural", password: str = ""):
