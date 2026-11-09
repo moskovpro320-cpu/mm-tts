@@ -13,7 +13,7 @@ for i in range(1, 101):
 
 BLOCKED_KEYS = set()
 
-# အသံတစ်မျိုးချင်းစီအတွက် သီးသန့် Preset ပရိုဖိုင်များ (အသံမတူအောင် သေချာခွဲခြားထားသည်)
+# အသံတစ်မျိုးချင်းစီအတွက် သီးသန့် Preset ပရိုဖိုင်များ
 VOICE_PROFILES = {
     "akolay": {"base": "my-MM-ThihaNeural", "pitch": "+0Hz", "rate": "+0%", "name": "အကိုလေး (🇲🇲 - ကျား)"},
     "myamya": {"base": "my-MM-NilarNeural", "pitch": "+0Hz", "rate": "+0%", "name": "မြမြ (🇲🇲 - မ)"},
@@ -208,8 +208,6 @@ HTML_CONTENT = """
       height: 120px;
       resize: vertical;
     }
-
-    /* Voice Row with Play Button */
     .voice-control-row {
       display: flex;
       align-items: center;
@@ -250,8 +248,6 @@ HTML_CONTENT = """
       color: #64748b;
       margin-top: 4px;
     }
-
-    /* Range Slider */
     .slider-wrap {
       display: flex;
       flex-direction: column;
@@ -437,7 +433,6 @@ HTML_CONTENT = """
               <option value="michael">မိုက်ကယ် (🇬🇧 - ကျား)</option>
               <option value="emma">ဂျနီဖာ (🇬🇧 - မ)</option>
             </select>
-            <!-- Voice Sample Preview Button -->
             <button class="play-sample-btn" id="previewBtn" onclick="playVoicePreview()" title="နမူနာအသံ နားထောင်မည်">▶</button>
           </div>
           <div class="voice-hint">နမူနာအသံကို နားထောင်ရန် ခလုတ်ကို ကိုယ်တိုင်နှိပ်ပြီး ဖွင့်ရပါမည်။</div>
@@ -458,7 +453,7 @@ HTML_CONTENT = """
         <div>
           <div class="label">Emotion / Style</div>
           <select id="styleSel" onchange="applyStylePreset()">
-            <option value="recap">Movie Recap (ဇာတ်လမ်းပြော)</option>
+            <option value="recap" selected>Movie Recap (ဇာတ်လမ်းပြော)</option>
             <option value="story">Storytelling (ပုံပြင်ပြော)</option>
             <option value="news">Serious/News (သတင်းကြေညာ/တည်ငြိမ်)</option>
             <option value="excited">Excited (စိတ်လှုပ်ရှား)</option>
@@ -479,26 +474,26 @@ HTML_CONTENT = """
 
         <div class="slider-wrap">
           <div class="slider-info">
-            <span>Tone (အသံအနိမ့်အမြင့်)</span>
-            <span class="slider-val" id="toneVal">0 Hz</span>
+            <span>Tone</span>
+            <span class="slider-val" id="toneVal">0</span>
           </div>
           <input type="range" id="toneSlider" min="-30" max="30" value="0" oninput="updateSliders()">
         </div>
 
         <div class="slider-wrap">
           <div class="slider-info">
-            <span>Speed (အနှေးအမြန်)</span>
-            <span class="slider-val" id="speedVal">0%</span>
+            <span>Speed</span>
+            <span class="slider-val" id="speedVal">10</span>
           </div>
-          <input type="range" id="speedSlider" min="-30" max="40" value="0" oninput="updateSliders()">
+          <input type="range" id="speedSlider" min="-30" max="40" value="10" oninput="updateSliders()">
         </div>
 
         <div class="slider-wrap">
           <div class="slider-info">
             <span>Volume Boost</span>
-            <span class="slider-val" id="volVal">0 dB</span>
+            <span class="slider-val" id="volVal">10 dB</span>
           </div>
-          <input type="range" id="volSlider" min="-10" max="15" value="0" oninput="updateSliders()">
+          <input type="range" id="volSlider" min="-10" max="20" value="10" oninput="updateSliders()">
         </div>
       </div>
 
@@ -602,7 +597,6 @@ HTML_CONTENT = """
       document.getElementById('loginArea').style.display = 'flex';
     }
 
-    // Play Voice Preview Function
     async function playVoicePreview() {
       const vKey = document.getElementById('voiceKeySel').value;
       const btn = document.getElementById('previewBtn');
@@ -640,11 +634,10 @@ HTML_CONTENT = """
     }
 
     function updateSliders() {
-      document.getElementById('toneVal').innerText = document.getElementById('toneSlider').value + " Hz";
-      const spd = document.getElementById('speedSlider').value;
-      document.getElementById('speedVal').innerText = (spd >= 0 ? "+" : "") + spd + "%";
+      document.getElementById('toneVal').innerText = document.getElementById('toneSlider').value;
+      document.getElementById('speedVal').innerText = document.getElementById('speedSlider').value;
       const vol = document.getElementById('volSlider').value;
-      document.getElementById('volVal').innerText = (vol >= 0 ? "+" : "") + vol + " dB";
+      document.getElementById('volVal').innerText = vol + " dB";
     }
 
     function applyStylePreset() {
@@ -653,8 +646,8 @@ HTML_CONTENT = """
       const s = document.getElementById('speedSlider');
       const v = document.getElementById('volSlider');
 
-      if (style === 'recap') { t.value = 0; s.value = 5; v.value = 4; }
-      else if (style === 'story') { t.value = -3; s.value = -8; v.value = 0; }
+      if (style === 'recap') { t.value = 0; s.value = 10; v.value = 10; }
+      else if (style === 'story') { t.value = -3; s.value = -5; v.value = 0; }
       else if (style === 'news') { t.value = -5; s.value = 0; v.value = 2; }
       else if (style === 'excited') { t.value = 8; s.value = 15; v.value = 6; }
       else if (style === 'sad') { t.value = -10; s.value = -15; v.value = -2; }
@@ -777,7 +770,6 @@ async def verify_password(password: str = ""):
         )
     return {"status": "ok", "user": ALLOWED_PASSWORDS[password]}
 
-# နမူနာအသံ (Preview) ထုတ်ပေးသည့် API
 @app.get("/preview")
 async def preview_voice(voice_key: str = "akolay", password: str = ""):
     if password in BLOCKED_KEYS or password not in ALLOWED_PASSWORDS:
@@ -830,8 +822,8 @@ async def generate(
     text: str, 
     voice_key: str = "akolay",
     user_pitch: int = 0,
-    user_speed: int = 0,
-    user_vol: int = 0,
+    user_speed: int = 10,
+    user_vol: int = 10,
     password: str = ""
 ):
     if password in BLOCKED_KEYS or password not in ALLOWED_PASSWORDS:
@@ -842,7 +834,6 @@ async def generate(
 
     profile = VOICE_PROFILES.get(voice_key, VOICE_PROFILES["akolay"])
 
-    # မူလ Preset Pitch/Speed ပေါင်းစပ်တွက်ချက်ခြင်း
     base_pitch_int = int(re.sub(r'[^-\d]', '', profile["pitch"]) or 0)
     base_rate_int = int(re.sub(r'[^-\d]', '', profile["rate"]) or 0)
 
