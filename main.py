@@ -1,9 +1,10 @@
+
 from fastapi import FastAPI, Response, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import edge_tts
 
-# ဤနေရာတွင် မိမိထားလိုသော Password ကို ပြောင်းလဲသတ်မှတ်ပါ
+# သတ်မှတ်ထားသော Password
 MY_PASSWORD = "631378"
 
 app = FastAPI()
@@ -23,24 +24,39 @@ HTML_CONTENT = """
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Myanmar AI TTS</title>
   <style>
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: #fff; padding: 16px; margin: 0; display: flex; justify-content: center; }
-    .box { width: 100%; max-width: 450px; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; box-sizing: border-box; }
-    h2 { color: #38bdf8; text-align: center; margin-top: 0; }
-    input[type="password"], textarea { width: 100%; background: #0f172a; color: #fff; border: 1px solid #475569; border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 15px; }
-    input[type="password"] { margin-bottom: 12px; }
-    textarea { height: 110px; }
-    select, button { width: 100%; padding: 12px; margin-top: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #fff; padding: 16px; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 90vh; }
+    .box { width: 100%; max-width: 440px; background: #1e293b; padding: 24px; border-radius: 14px; border: 1px solid #334155; box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    h2 { color: #38bdf8; text-align: center; margin-top: 0; font-size: 20px; }
+    input[type="password"], textarea { width: 100%; background: #0f172a; color: #fff; border: 1px solid #475569; border-radius: 8px; padding: 12px; box-sizing: border-box; font-size: 15px; }
+    textarea { height: 130px; resize: vertical; }
+    select, button { width: 100%; padding: 13px; margin-top: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
     select { background: #0f172a; color: #fff; border: 1px solid #475569; }
-    button { background: #0284c7; color: #fff; font-weight: bold; cursor: pointer; }
+    button { background: #0284c7; color: #fff; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    button:active { transform: scale(0.98); }
     button:disabled { background: #64748b; }
     audio { width: 100%; margin-top: 16px; }
-    #status { margin-top: 12px; text-align: center; font-size: 14px; min-height: 20px; }
+    #status, #login-err { margin-top: 12px; text-align: center; font-size: 14px; min-height: 20px; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .logout-btn { width: auto; padding: 6px 12px; margin: 0; background: #ef4444; font-size: 12px; border-radius: 6px; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>🇲🇲 Myanmar AI TTS</h2>
-    <input type="password" id="pwd" placeholder="Password ရိုက်ထည့်ပါ..." />
+
+  <!-- အဆင့် ၁ - Login Box -->
+  <div class="box" id="loginBox">
+    <h2>🔒 Access Password</h2>
+    <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: -6px; margin-bottom: 18px;">အသုံးပြုရန် စကားဝှက် ရိုက်ထည့်ပါ</p>
+    <input type="password" id="inputPwd" placeholder="Password ရိုက်ထည့်ပါ..." />
+    <button onclick="handleLogin()">ဝင်မည် (Enter)</button>
+    <div id="login-err"></div>
+  </div>
+
+  <!-- အဆင့် ၂ - TTS App Box (Password မှန်မှ ပေါ်မည်) -->
+  <div class="box" id="appBox" style="display: none;">
+    <div class="header-bar">
+      <h2 style="margin: 0;">🇲🇲 Myanmar AI TTS</h2>
+      <button class="logout-btn" onclick="handleLogout()">Logout</button>
+    </div>
     <textarea id="txt" placeholder="မြန်မာစာ ရိုက်ထည့်ပါ..."></textarea>
     <select id="vc">
       <option value="my-MM-ThihaNeural">သီဟ (ကျား)</option>
@@ -50,20 +66,47 @@ HTML_CONTENT = """
     <div id="status"></div>
     <audio id="aud" controls style="display:none;"></audio>
   </div>
+
   <script>
+    let savedPwd = sessionStorage.getItem("tts_auth") || "";
+
+    if (savedPwd) {
+      document.getElementById('loginBox').style.display = 'none';
+      document.getElementById('appBox').style.display = 'block';
+    }
+
+    function handleLogin() {
+      const pwd = document.getElementById('inputPwd').value.trim();
+      const err = document.getElementById('login-err');
+
+      if (!pwd) {
+        err.style.color = '#ef4444';
+        err.innerText = "Password အရင် ရိုက်ထည့်ပါ";
+        return;
+      }
+
+      savedPwd = pwd;
+      sessionStorage.setItem("tts_auth", pwd);
+      document.getElementById('loginBox').style.display = 'none';
+      document.getElementById('appBox').style.display = 'block';
+    }
+
+    function handleLogout() {
+      sessionStorage.removeItem("tts_auth");
+      savedPwd = "";
+      document.getElementById('inputPwd').value = "";
+      document.getElementById('login-err').innerText = "";
+      document.getElementById('appBox').style.display = 'none';
+      document.getElementById('loginBox').style.display = 'block';
+    }
+
     async function gen() {
-      const pwd = document.getElementById('pwd').value.trim();
       const text = document.getElementById('txt').value.trim();
       const voice = document.getElementById('vc').value;
       const btn = document.getElementById('btn');
       const status = document.getElementById('status');
       const aud = document.getElementById('aud');
 
-      if (!pwd) {
-        status.style.color = '#ef4444';
-        status.innerText = "Password အရင် ရိုက်ထည့်ပါ";
-        return;
-      }
       if (!text) { 
         status.style.color = '#ef4444';
         status.innerText = "စာအရင် ရိုက်ထည့်ပါ"; 
@@ -73,11 +116,15 @@ HTML_CONTENT = """
       btn.disabled = true;
       aud.style.display = 'none';
       status.style.color = '#38bdf8';
-      status.innerText = "အသံဖိုင် ဖန်တီးနေပါသည်...";
+      status.innerText = "အသံဖိုင် ဖန်တီးနေပါသည်... ခဏစောင့်ပါ...";
 
       try {
-        const res = await fetch(`/tts?text=${encodeURIComponent(text)}&voice=${voice}&password=${encodeURIComponent(pwd)}`);
+        const res = await fetch(`/tts?text=${encodeURIComponent(text)}&voice=${voice}&password=${encodeURIComponent(savedPwd)}`);
+        
         if (res.status === 401) {
+          handleLogout();
+          document.getElementById('login-err').style.color = '#ef4444';
+          document.getElementById('login-err').innerText = "Password မှားယွင်းနေပါသည်။ ပြန်ရိုက်ပေးပါ။";
           throw new Error("Password မှားယွင်းနေပါသည်");
         }
         if (!res.ok) throw new Error("အသံထုတ်မရပါ");
@@ -89,8 +136,10 @@ HTML_CONTENT = """
         status.style.color = '#22c55e';
         status.innerText = "အသံဖိုင် ရပါပြီ။ နားဆင်/ဒေါင်းလုဒ် ဆွဲနိုင်ပါပြီ။";
       } catch (e) {
-        status.style.color = '#ef4444';
-        status.innerText = e.message;
+        if (res?.status !== 401) {
+          status.style.color = '#ef4444';
+          status.innerText = e.message;
+        }
       } finally {
         btn.disabled = false;
       }
