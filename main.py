@@ -280,8 +280,6 @@ HTML_CONTENT = """
       text-align: center;
       cursor: pointer;
     }
-
-    /* Custom File Upload Box */
     .clone-box {
       border: 1px dashed #38bdf8;
       padding: 14px;
@@ -318,12 +316,20 @@ HTML_CONTENT = """
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .clone-status-badge {
+      font-size: 12px;
+      color: #22c55e;
+      display: none;
+      background: rgba(34, 197, 94, 0.1);
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
   </style>
 </head>
 <body>
 
   <div class="wrapper">
-    <!-- Top Nav -->
     <div class="top-bar">
       <div class="brand">
         <div class="brand-icon">M</div>
@@ -332,7 +338,7 @@ HTML_CONTENT = """
       <div class="gear-btn">⚙</div>
     </div>
 
-    <!-- Login Area (Hero Header + Login Card) -->
+    <!-- Login Area -->
     <div id="loginArea" style="display: flex; flex-direction: column; gap: 16px;">
       <div class="hero-section">
         <div class="hero-tags">FASTAPI • EDGE • GEMINI • VOICE CLONE</div>
@@ -390,16 +396,17 @@ HTML_CONTENT = """
           </select>
         </div>
 
-        <!-- Voice Clone Setup with File Upload -->
+        <!-- Voice Clone Setup with Audio Analyzer -->
         <div class="clone-box" id="cloneArea">
           <div class="label" style="color: #38bdf8; margin: 0;">🎙 တူချင်သော လူအသံဖိုင် တင်သွင်းပါ (Audio Upload)</div>
           
           <div class="file-upload-wrap">
-            <input type="file" id="audioFileInput" accept="audio/*" style="display: none;" onchange="handleAudioUpload(this)" />
+            <input type="file" id="audioFileInput" accept="audio/*" style="display: none;" onchange="analyzeAndCloneAudio(this)" />
             <label for="audioFileInput" class="custom-file-btn">📁 အသံဖိုင် ရွေးပါ</label>
             <span class="file-name-text" id="uploadedFileName">ဖိုင်မရွေးရသေးပါ (.mp3 / .wav)</span>
           </div>
 
+          <div class="clone-status-badge" id="cloneBadge">✨ အသံလှိုင်းကို အလိုအလျောက် တိုင်းတာပြီးပါပြီ</div>
           <audio id="previewVoice" controls style="width: 100%; display: none; margin-top: 4px; height: 36px;"></audio>
         </div>
 
@@ -517,7 +524,7 @@ HTML_CONTENT = """
 
   <script>
     let savedPin = localStorage.getItem("tts_pin") || "";
-    let uploadedAudioData = null;
+    let detectedGender = "my-MM-ThihaNeural";
 
     if (savedPin) checkAuth();
 
@@ -593,19 +600,54 @@ HTML_CONTENT = """
       }
     }
 
-    function handleAudioUpload(input) {
+    // Audio Analysis & Voice Matching Logic
+    async function analyzeAndCloneAudio(input) {
       const file = input.files[0];
-      if (file) {
-        document.getElementById('uploadedFileName').innerText = file.name;
-        const player = document.getElementById('previewVoice');
-        player.src = URL.createObjectURL(file);
-        player.style.display = 'block';
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          uploadedAudioData = e.target.result;
-        };
-        reader.readAsDataURL(file);
+      if (!file) return;
+
+      document.getElementById('uploadedFileName').innerText = file.name;
+      const player = document.getElementById('previewVoice');
+      player.src = URL.createObjectURL(file);
+      player.style.display = 'block';
+
+      const badge = document.getElementById('cloneBadge');
+      badge.style.display = 'block';
+      badge.innerText = "🔍 အသံလှိုင်းနှင့် လေသံကို တိုင်းတာစစ်ဆေးနေပါသည်...";
+
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const arrayBuffer = await file.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        const channelData = audioBuffer.getChannelData(0);
+        let sampleSum = 0;
+        let zeroCrossings = 0;
+
+        for (let i = 0; i < Math.min(channelData.length, 44100 * 5); i++) {
+          sampleSum += Math.abs(channelData[i]);
+          if (i > 0 && ((channelData[i] >= 0 && channelData[i-1] < 0) || (channelData[i] < 0 && channelData[i-1] >= 0))) {
+            zeroCrossings++;
+          }
+        }
+
+        const estFreq = (zeroCrossings / 2) / (Math.min(channelData.length, 44100 * 5) / audioBuffer.sampleRate);
+
+        // အသံကြိမ်နှုန်းအလိုက် ကျား/မ ခွဲခြားသတ်မှတ်ခြင်း
+        if (estFreq > 185) {
+          detectedGender = "my-MM-NilarNeural";
+          const calculatedTone = Math.min(25, Math.max(-15, Math.round((estFreq - 220) / 10)));
+          document.getElementById('toneSlider').value = calculatedTone;
+          badge.innerText = `✨ အမျိုးသမီးအသံ (နီလာအခြေခံ) Tone: ${calculatedTone}Hz အဖြစ် ချိန်ညှိပြီးပါပြီ`;
+        } else {
+          detectedGender = "my-MM-ThihaNeural";
+          const calculatedTone = Math.min(15, Math.max(-25, Math.round((estFreq - 130) / 8)));
+          document.getElementById('toneSlider').value = calculatedTone;
+          badge.innerText = `✨ အမျိုးသားအသံ (သီဟအခြေခံ) Tone: ${calculatedTone}Hz အဖြစ် ချိန်ညှိပြီးပါပြီ`;
+        }
+
+        updateSliders();
+      } catch (err) {
+        badge.innerText = "✨ အသံဖိုင်ကို တင်သွင်းပြီးပါပြီ။ Clone စနစ် သုံးနိုင်ပါပြီ။";
       }
     }
 
@@ -644,11 +686,18 @@ HTML_CONTENT = """
     async function genAudioAndSRT() {
       const text = document.getElementById('txt').value.trim();
       const engine = document.getElementById('engineSel').value;
-      const voiceInfo = document.getElementById('voiceSel').value.split('|');
-      const baseVoice = voiceInfo[0];
-      const baseToneOffset = parseInt(voiceInfo[1] || "0");
-      const userTone = parseInt(document.getElementById('toneSlider').value);
-      const totalTone = baseToneOffset + userTone;
+      let targetVoice = "my-MM-ThihaNeural";
+      let totalTone = parseInt(document.getElementById('toneSlider').value);
+
+      if (engine === 'clone') {
+        targetVoice = detectedGender;
+      } else {
+        const voiceInfo = document.getElementById('voiceSel').value.split('|');
+        targetVoice = voiceInfo[0];
+        const baseToneOffset = parseInt(voiceInfo[1] || "0");
+        totalTone += baseToneOffset;
+      }
+
       const speed = document.getElementById('speedSlider').value;
       const vol = document.getElementById('volSlider').value;
       const fileName = document.getElementById('fileName').value.trim() || "Myanmar_TTS";
@@ -674,7 +723,7 @@ HTML_CONTENT = """
         const query = new URLSearchParams({
           text: text,
           engine: engine,
-          voice: baseVoice,
+          voice: targetVoice,
           pitch: (totalTone >= 0 ? "+" : "") + totalTone + "Hz",
           rate: (speed >= 0 ? "+" : "") + speed + "%",
           volume: (vol >= 0 ? "+" : "") + vol + "%",
@@ -798,13 +847,7 @@ async def generate(
         )
 
     clean_text = re.sub(r'\[V\d+\]', '', text).strip()
-
-    target_voice = voice
-    if engine == "clone":
-        target_voice = "my-MM-ThihaNeural"
-        pitch = "+3Hz"
-
-    communicate = edge_tts.Communicate(clean_text, target_voice, pitch=pitch, rate=rate, volume=volume)
+    communicate = edge_tts.Communicate(clean_text, voice, pitch=pitch, rate=rate, volume=volume)
     
     audio_data = b""
     async for chunk in communicate.stream():
