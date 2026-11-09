@@ -1,7 +1,10 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import edge_tts
+
+# ဤနေရာတွင် မိမိထားလိုသော Password ကို ပြောင်းလဲသတ်မှတ်ပါ
+MY_PASSWORD = "631378"
 
 app = FastAPI()
 
@@ -23,7 +26,9 @@ HTML_CONTENT = """
     body { font-family: system-ui, sans-serif; background: #0f172a; color: #fff; padding: 16px; margin: 0; display: flex; justify-content: center; }
     .box { width: 100%; max-width: 450px; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; box-sizing: border-box; }
     h2 { color: #38bdf8; text-align: center; margin-top: 0; }
-    textarea { width: 100%; height: 120px; background: #0f172a; color: #fff; border: 1px solid #475569; border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 15px; }
+    input[type="password"], textarea { width: 100%; background: #0f172a; color: #fff; border: 1px solid #475569; border-radius: 8px; padding: 10px; box-sizing: border-box; font-size: 15px; }
+    input[type="password"] { margin-bottom: 12px; }
+    textarea { height: 110px; }
     select, button { width: 100%; padding: 12px; margin-top: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
     select { background: #0f172a; color: #fff; border: 1px solid #475569; }
     button { background: #0284c7; color: #fff; font-weight: bold; cursor: pointer; }
@@ -35,6 +40,7 @@ HTML_CONTENT = """
 <body>
   <div class="box">
     <h2>🇲🇲 Myanmar AI TTS</h2>
+    <input type="password" id="pwd" placeholder="Password ရိုက်ထည့်ပါ..." />
     <textarea id="txt" placeholder="မြန်မာစာ ရိုက်ထည့်ပါ..."></textarea>
     <select id="vc">
       <option value="my-MM-ThihaNeural">သီဟ (ကျား)</option>
@@ -46,25 +52,36 @@ HTML_CONTENT = """
   </div>
   <script>
     async function gen() {
+      const pwd = document.getElementById('pwd').value.trim();
       const text = document.getElementById('txt').value.trim();
       const voice = document.getElementById('vc').value;
       const btn = document.getElementById('btn');
       const status = document.getElementById('status');
       const aud = document.getElementById('aud');
 
+      if (!pwd) {
+        status.style.color = '#ef4444';
+        status.innerText = "Password အရင် ရိုက်ထည့်ပါ";
+        return;
+      }
       if (!text) { 
         status.style.color = '#ef4444';
         status.innerText = "စာအရင် ရိုက်ထည့်ပါ"; 
         return; 
       }
+
       btn.disabled = true;
       aud.style.display = 'none';
       status.style.color = '#38bdf8';
-      status.innerText = "အသံဖိုင် ဖန်တီးနေပါသည်... ခဏစောင့်ပါ...";
+      status.innerText = "အသံဖိုင် ဖန်တီးနေပါသည်...";
 
       try {
-        const res = await fetch(`/tts?text=${encodeURIComponent(text)}&voice=${voice}`);
-        if (!res.ok) throw new Error();
+        const res = await fetch(`/tts?text=${encodeURIComponent(text)}&voice=${voice}&password=${encodeURIComponent(pwd)}`);
+        if (res.status === 401) {
+          throw new Error("Password မှားယွင်းနေပါသည်");
+        }
+        if (!res.ok) throw new Error("အသံထုတ်မရပါ");
+        
         const blob = await res.blob();
         aud.src = URL.createObjectURL(blob);
         aud.style.display = 'block';
@@ -73,7 +90,7 @@ HTML_CONTENT = """
         status.innerText = "အသံဖိုင် ရပါပြီ။ နားဆင်/ဒေါင်းလုဒ် ဆွဲနိုင်ပါပြီ။";
       } catch (e) {
         status.style.color = '#ef4444';
-        status.innerText = "အသံထုတ်မရပါ၊ ခဏနေ ပြန်စမ်းပေးပါ။";
+        status.innerText = e.message;
       } finally {
         btn.disabled = false;
       }
@@ -88,7 +105,12 @@ async def index():
     return HTML_CONTENT
 
 @app.get("/tts")
-async def tts(text: str, voice: str = "my-MM-ThihaNeural"):
+async def tts(text: str, voice: str = "my-MM-ThihaNeural", password: str = ""):
+    if password != MY_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password မှားယွင်းနေပါသည်"
+        )
     communicate = edge_tts.Communicate(text, voice)
     audio_data = b""
     async for chunk in communicate.stream():
