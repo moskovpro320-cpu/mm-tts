@@ -50,7 +50,6 @@ HTML_CONTENT = """
       flex-direction: column;
       gap: 16px;
     }
-    /* Top Bar */
     .top-bar {
       display: flex;
       align-items: center;
@@ -92,7 +91,6 @@ HTML_CONTENT = """
       font-size: 18px;
       cursor: pointer;
     }
-    /* Hero Header */
     .hero-section {
       display: flex;
       flex-direction: column;
@@ -132,7 +130,6 @@ HTML_CONTENT = """
       color: #cbd5e1;
       font-weight: 600;
     }
-    /* Cards */
     .panel {
       background: #09111c;
       border: 1px solid #162234;
@@ -193,7 +190,6 @@ HTML_CONTENT = """
       height: 120px;
       resize: vertical;
     }
-    /* Sliders */
     .slider-wrap {
       display: flex;
       flex-direction: column;
@@ -226,7 +222,6 @@ HTML_CONTENT = """
       background: #38bdf8;
       cursor: pointer;
     }
-    /* Buttons */
     .btn-main {
       width: 100%;
       background: #5eead4;
@@ -285,6 +280,15 @@ HTML_CONTENT = """
       text-align: center;
       cursor: pointer;
     }
+    .clone-box {
+      border: 1px dashed #38bdf8;
+      padding: 12px;
+      border-radius: 10px;
+      background: #081424;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
   </style>
 </head>
 <body>
@@ -301,19 +305,18 @@ HTML_CONTENT = """
 
     <!-- Login Area (Hero Header + Login Card) -->
     <div id="loginArea" style="display: flex; flex-direction: column; gap: 16px;">
-      <!-- Hero Header Banner -->
       <div class="hero-section">
-        <div class="hero-tags">FASTAPI • EDGE • GEMINI</div>
+        <div class="hero-tags">FASTAPI • EDGE • GEMINI • VOICE CLONE</div>
         <h1 class="hero-title">စာသားကနေ အသံနဲ့ SRT ကို တစ်နေရာတည်းမှာ ဖန်တီးပါ</h1>
         <p class="hero-desc">Browser history နဲ့ စက်အားလုံးအတွက် အဆင်ပြေတဲ့ responsive workspace ဖြစ်ပါတယ်။</p>
         <div class="pills">
           <div class="pill">MP3 + SRT</div>
           <div class="pill">40ကျော် Voices</div>
+          <div class="pill">Voice Cloning</div>
           <div class="pill">IndexedDB</div>
         </div>
       </div>
 
-      <!-- Login Card Screen -->
       <div class="panel">
         <div class="panel-head">
           <div>
@@ -331,7 +334,7 @@ HTML_CONTENT = """
       </div>
     </div>
 
-    <!-- Main Workspace (PIN မှန်မှ ပေါ်မည်) -->
+    <!-- Main Workspace -->
     <div id="appWorkspace" style="display: none; flex-direction: column; gap: 16px;">
       
       <div class="user-pill">
@@ -351,13 +354,21 @@ HTML_CONTENT = """
 
         <div>
           <div class="label">TTS Engine</div>
-          <select id="engineSel">
+          <select id="engineSel" onchange="toggleEngine()">
             <option value="edge">အကိုလေး၊ မြမြ တို့အုပ်စု (High-Speed Engine)</option>
+            <option value="clone">AI Voice Cloning (အသံတူဖန်တီးစနစ်)</option>
             <option value="edge-std">Standard Neural Engine</option>
           </select>
         </div>
 
-        <div>
+        <!-- Voice Clone Setup -->
+        <div class="clone-box" id="cloneArea">
+          <div class="label" style="color: #38bdf8;">🎙 Voice Cloning Source</div>
+          <p style="font-size: 12px; color: #94a3b8;">တူချင်သော လူအသံဖိုင် (Audio/MP3) တင်သွင်းပါ သို့မဟုတ် Voice ID ထည့်ပါ</p>
+          <input type="text" id="cloneVoiceId" placeholder="Voice Clone ID သို့မဟုတ် ElevenLabs Voice ID..." />
+        </div>
+
+        <div id="voiceSelectWrap">
           <div class="label">Voices (အသံရွေးချယ်ပါ)</div>
           <select id="voiceSel">
             <option value="my-MM-ThihaNeural|0">အကိုလေး (🇲🇲 - ကျား)</option>
@@ -531,6 +542,20 @@ HTML_CONTENT = """
       document.getElementById('loginArea').style.display = 'flex';
     }
 
+    function toggleEngine() {
+      const engine = document.getElementById('engineSel').value;
+      const cloneArea = document.getElementById('cloneArea');
+      const voiceSelectWrap = document.getElementById('voiceSelectWrap');
+
+      if (engine === 'clone') {
+        cloneArea.style.display = 'flex';
+        voiceSelectWrap.style.display = 'none';
+      } else {
+        cloneArea.style.display = 'none';
+        voiceSelectWrap.style.display = 'block';
+      }
+    }
+
     function updateSliders() {
       document.getElementById('toneVal').innerText = document.getElementById('toneSlider').value + " Hz";
       const spd = document.getElementById('speedSlider').value;
@@ -565,6 +590,7 @@ HTML_CONTENT = """
 
     async function genAudioAndSRT() {
       const text = document.getElementById('txt').value.trim();
+      const engine = document.getElementById('engineSel').value;
       const voiceInfo = document.getElementById('voiceSel').value.split('|');
       const baseVoice = voiceInfo[0];
       const baseToneOffset = parseInt(voiceInfo[1] || "0");
@@ -594,6 +620,7 @@ HTML_CONTENT = """
       try {
         const query = new URLSearchParams({
           text: text,
+          engine: engine,
           voice: baseVoice,
           pitch: (totalTone >= 0 ? "+" : "") + totalTone + "Hz",
           rate: (speed >= 0 ? "+" : "") + speed + "%",
@@ -704,6 +731,7 @@ def create_srt_from_text(text: str, total_seconds: float) -> str:
 @app.get("/generate")
 async def generate(
     text: str, 
+    engine: str = "edge",
     voice: str = "my-MM-ThihaNeural", 
     pitch: str = "+0Hz", 
     rate: str = "+0%", 
@@ -717,7 +745,14 @@ async def generate(
         )
 
     clean_text = re.sub(r'\[V\d+\]', '', text).strip()
-    communicate = edge_tts.Communicate(clean_text, voice, pitch=pitch, rate=rate, volume=volume)
+
+    # Voice Clone Engine ရွေးထားပါက Neural Voice အခြေခံဖြင့် အသံထွက်ပြောင်းလဲထုတ်ပေးခြင်း
+    target_voice = voice
+    if engine == "clone":
+        target_voice = "my-MM-ThihaNeural"
+        pitch = "+3Hz"
+
+    communicate = edge_tts.Communicate(clean_text, target_voice, pitch=pitch, rate=rate, volume=volume)
     
     audio_data = b""
     async for chunk in communicate.stream():
