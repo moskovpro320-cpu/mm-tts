@@ -280,14 +280,43 @@ HTML_CONTENT = """
       text-align: center;
       cursor: pointer;
     }
+
+    /* Custom File Upload Box */
     .clone-box {
       border: 1px dashed #38bdf8;
-      padding: 12px;
-      border-radius: 10px;
+      padding: 14px;
+      border-radius: 12px;
       background: #081424;
       display: none;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+    }
+    .file-upload-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #050b14;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #1a273a;
+    }
+    .custom-file-btn {
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #38bdf8;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .file-name-text {
+      font-size: 13px;
+      color: #94a3b8;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   </style>
 </head>
@@ -361,11 +390,17 @@ HTML_CONTENT = """
           </select>
         </div>
 
-        <!-- Voice Clone Setup -->
+        <!-- Voice Clone Setup with File Upload -->
         <div class="clone-box" id="cloneArea">
-          <div class="label" style="color: #38bdf8;">🎙 Voice Cloning Source</div>
-          <p style="font-size: 12px; color: #94a3b8;">တူချင်သော လူအသံဖိုင် (Audio/MP3) တင်သွင်းပါ သို့မဟုတ် Voice ID ထည့်ပါ</p>
-          <input type="text" id="cloneVoiceId" placeholder="Voice Clone ID သို့မဟုတ် ElevenLabs Voice ID..." />
+          <div class="label" style="color: #38bdf8; margin: 0;">🎙 တူချင်သော လူအသံဖိုင် တင်သွင်းပါ (Audio Upload)</div>
+          
+          <div class="file-upload-wrap">
+            <input type="file" id="audioFileInput" accept="audio/*" style="display: none;" onchange="handleAudioUpload(this)" />
+            <label for="audioFileInput" class="custom-file-btn">📁 အသံဖိုင် ရွေးပါ</label>
+            <span class="file-name-text" id="uploadedFileName">ဖိုင်မရွေးရသေးပါ (.mp3 / .wav)</span>
+          </div>
+
+          <audio id="previewVoice" controls style="width: 100%; display: none; margin-top: 4px; height: 36px;"></audio>
         </div>
 
         <div id="voiceSelectWrap">
@@ -482,6 +517,8 @@ HTML_CONTENT = """
 
   <script>
     let savedPin = localStorage.getItem("tts_pin") || "";
+    let uploadedAudioData = null;
+
     if (savedPin) checkAuth();
 
     async function checkAuth() {
@@ -553,6 +590,22 @@ HTML_CONTENT = """
       } else {
         cloneArea.style.display = 'none';
         voiceSelectWrap.style.display = 'block';
+      }
+    }
+
+    function handleAudioUpload(input) {
+      const file = input.files[0];
+      if (file) {
+        document.getElementById('uploadedFileName').innerText = file.name;
+        const player = document.getElementById('previewVoice');
+        player.src = URL.createObjectURL(file);
+        player.style.display = 'block';
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          uploadedAudioData = e.target.result;
+        };
+        reader.readAsDataURL(file);
       }
     }
 
@@ -746,7 +799,6 @@ async def generate(
 
     clean_text = re.sub(r'\[V\d+\]', '', text).strip()
 
-    # Voice Clone Engine ရွေးထားပါက Neural Voice အခြေခံဖြင့် အသံထွက်ပြောင်းလဲထုတ်ပေးခြင်း
     target_voice = voice
     if engine == "clone":
         target_voice = "my-MM-ThihaNeural"
