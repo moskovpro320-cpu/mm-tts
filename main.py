@@ -13,6 +13,25 @@ for i in range(1, 101):
 
 BLOCKED_KEYS = set()
 
+# အသံတစ်မျိုးချင်းစီအတွက် သီးသန့် Preset ပရိုဖိုင်များ (အသံမတူအောင် သေချာခွဲခြားထားသည်)
+VOICE_PROFILES = {
+    "akolay": {"base": "my-MM-ThihaNeural", "pitch": "+0Hz", "rate": "+0%", "name": "အကိုလေး (🇲🇲 - ကျား)"},
+    "myamya": {"base": "my-MM-NilarNeural", "pitch": "+0Hz", "rate": "+0%", "name": "မြမြ (🇲🇲 - မ)"},
+    "soegyi": {"base": "my-MM-ThihaNeural", "pitch": "-18Hz", "rate": "-6%", "name": "စိုးကြီး (🇲🇲 - ကျား အသံဩဇာ)"},
+    "sa_u": {"base": "my-MM-NilarNeural", "pitch": "+15Hz", "rate": "+6%", "name": "စာဥ (🇲🇲 - မ အသံကြည်)"},
+    "thakingyi": {"base": "my-MM-ThihaNeural", "pitch": "-28Hz", "rate": "-12%", "name": "သခင်ကြီး (🇲🇲 - ကျား အသံနက်)"},
+    "chawsu": {"base": "my-MM-NilarNeural", "pitch": "-6Hz", "rate": "-4%", "name": "ချောစု (🇲🇲 - မ အေးဆေး)"},
+    "choupro": {"base": "my-MM-ThihaNeural", "pitch": "+8Hz", "rate": "+12%", "name": "Chou Pro Lay (🇲🇲 - ကျား အသံမြန်)"},
+    "kayinma": {"base": "my-MM-NilarNeural", "pitch": "+8Hz", "rate": "-2%", "name": "ကရင်မ (🇲🇲 - မ သွက်လက်)"},
+    "tetpu": {"base": "my-MM-ThihaNeural", "pitch": "+22Hz", "rate": "+8%", "name": "တက်ပု (🇲🇲 - ကျား အသံစူး)"},
+    "nyapsi": {"base": "my-MM-NilarNeural", "pitch": "-14Hz", "rate": "-8%", "name": "ညှပ်စိ (🇲🇲 - မ အသံနက်)"},
+    "tatei": {"base": "my-MM-ThihaNeural", "pitch": "-35Hz", "rate": "-15%", "name": "တာတေ (🇲🇲 - ကျား သည်းထိတ်ရင်ဖို)"},
+    "james": {"base": "en-US-GuyNeural", "pitch": "+0Hz", "rate": "+0%", "name": "ဂျိမ်း (🇺🇸 - ကျား)"},
+    "sophia": {"base": "en-US-JennyNeural", "pitch": "+0Hz", "rate": "+0%", "name": "ဆိုဖီယာ (🇺🇸 - မ)"},
+    "michael": {"base": "en-GB-RyanNeural", "pitch": "+0Hz", "rate": "+0%", "name": "မိုက်ကယ် (🇬🇧 - ကျား)"},
+    "emma": {"base": "en-GB-SoniaNeural", "pitch": "+0Hz", "rate": "+0%", "name": "ဂျနီဖာ (🇬🇧 - မ)"}
+}
+
 app = FastAPI()
 
 app.add_middleware(
@@ -89,7 +108,6 @@ HTML_CONTENT = """
       align-items: center;
       justify-content: center;
       font-size: 18px;
-      cursor: pointer;
     }
     .hero-section {
       display: flex;
@@ -190,6 +208,50 @@ HTML_CONTENT = """
       height: 120px;
       resize: vertical;
     }
+
+    /* Voice Row with Play Button */
+    .voice-control-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .voice-badge {
+      background: #0e2238;
+      color: #38bdf8;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #1e3a5f;
+      white-space: nowrap;
+    }
+    .play-sample-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #083344;
+      border: 1px solid #0e7490;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .play-sample-btn:active {
+      transform: scale(0.95);
+      background: #0e7490;
+      color: #fff;
+    }
+    .voice-hint {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    /* Range Slider */
     .slider-wrap {
       display: flex;
       flex-direction: column;
@@ -280,51 +342,6 @@ HTML_CONTENT = """
       text-align: center;
       cursor: pointer;
     }
-    .clone-box {
-      border: 1px dashed #38bdf8;
-      padding: 14px;
-      border-radius: 12px;
-      background: #081424;
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .file-upload-wrap {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #050b14;
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid #1a273a;
-    }
-    .custom-file-btn {
-      background: #1e293b;
-      color: #38bdf8;
-      border: 1px solid #38bdf8;
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 13px;
-      cursor: pointer;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .file-name-text {
-      font-size: 13px;
-      color: #94a3b8;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .clone-status-badge {
-      font-size: 12px;
-      color: #22c55e;
-      display: none;
-      background: rgba(34, 197, 94, 0.1);
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid rgba(34, 197, 94, 0.3);
-    }
   </style>
 </head>
 <body>
@@ -341,13 +358,13 @@ HTML_CONTENT = """
     <!-- Login Area -->
     <div id="loginArea" style="display: flex; flex-direction: column; gap: 16px;">
       <div class="hero-section">
-        <div class="hero-tags">FASTAPI • EDGE • GEMINI • VOICE CLONE</div>
+        <div class="hero-tags">FASTAPI • EDGE • MULTI-VOICE • SRT</div>
         <h1 class="hero-title">စာသားကနေ အသံနဲ့ SRT ကို တစ်နေရာတည်းမှာ ဖန်တီးပါ</h1>
         <p class="hero-desc">Browser history နဲ့ စက်အားလုံးအတွက် အဆင်ပြေတဲ့ responsive workspace ဖြစ်ပါတယ်။</p>
         <div class="pills">
           <div class="pill">MP3 + SRT</div>
           <div class="pill">40ကျော် Voices</div>
-          <div class="pill">Voice Cloning</div>
+          <div class="pill">Voice Preview</div>
           <div class="pill">IndexedDB</div>
         </div>
       </div>
@@ -389,42 +406,42 @@ HTML_CONTENT = """
 
         <div>
           <div class="label">TTS Engine</div>
-          <select id="engineSel" onchange="toggleEngine()">
-            <option value="edge">အကိုလေး၊ မြမြ တို့အုပ်စု (High-Speed Engine)</option>
-            <option value="clone">AI Voice Cloning (အသံတူဖန်တီးစနစ်)</option>
-            <option value="edge-std">Standard Neural Engine</option>
+          <select id="engineSel">
+            <option value="group">အကိုလေး၊ မြမြ တို့အုပ်စု</option>
+            <option value="gemini">Gemini API</option>
           </select>
         </div>
 
-        <!-- Voice Clone Setup with Audio Analyzer -->
-        <div class="clone-box" id="cloneArea">
-          <div class="label" style="color: #38bdf8; margin: 0;">🎙 တူချင်သော လူအသံဖိုင် တင်သွင်းပါ (Audio Upload)</div>
-          
-          <div class="file-upload-wrap">
-            <input type="file" id="audioFileInput" accept="audio/*" style="display: none;" onchange="analyzeAndCloneAudio(this)" />
-            <label for="audioFileInput" class="custom-file-btn">📁 အသံဖိုင် ရွေးပါ</label>
-            <span class="file-name-text" id="uploadedFileName">ဖိုင်မရွေးရသေးပါ (.mp3 / .wav)</span>
+        <div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span class="label" style="margin: 0;">Voices (အသံရွေးချယ်ပါ)</span>
+            <span style="font-size: 12px; color: #64748b;">[V1] မှ [V10] ထိ အသုံးပြုနိုင်သည်</span>
           </div>
 
-          <div class="clone-status-badge" id="cloneBadge">✨ အသံလှိုင်းကို အလိုအလျောက် တိုင်းတာပြီးပါပြီ</div>
-          <audio id="previewVoice" controls style="width: 100%; display: none; margin-top: 4px; height: 36px;"></audio>
-        </div>
-
-        <div id="voiceSelectWrap">
-          <div class="label">Voices (အသံရွေးချယ်ပါ)</div>
-          <select id="voiceSel">
-            <option value="my-MM-ThihaNeural|0">အကိုလေး (🇲🇲 - ကျား)</option>
-            <option value="my-MM-NilarNeural|0">မြမြ (🇲🇲 - မ)</option>
-            <option value="my-MM-ThihaNeural|-20">စိုးကြီး (🇲🇲 - ကျား)</option>
-            <option value="my-MM-NilarNeural|15">စာဥ (🇲🇲 - မ)</option>
-            <option value="my-MM-ThihaNeural|-10">သခင်ကြီး (🇲🇲 - ကျား)</option>
-            <option value="my-MM-NilarNeural|-10">ချောစု (🇲🇲 - မ)</option>
-            <option value="my-MM-ThihaNeural|10">Chou Pro Lay (🇲🇲 - ကျား)</option>
-            <option value="my-MM-NilarNeural|5">ကရင်မ (🇲🇲 - မ)</option>
-            <option value="my-MM-ThihaNeural|20">တက်ပု (🇲🇲 - ကျား)</option>
-            <option value="my-MM-NilarNeural|-15">ညှပ်စိ (🇲🇲 - မ)</option>
-            <option value="my-MM-ThihaNeural|-25">တာတေ (🇲🇲 - ကျား)</option>
-          </select>
+          <div class="voice-control-row">
+            <div class="voice-badge">V1</div>
+            <select id="voiceKeySel" onchange="onVoiceChange()">
+              <option value="akolay">အကိုလေး (🇲🇲 - ကျား)</option>
+              <option value="myamya">မြမြ (🇲🇲 - မ)</option>
+              <option value="soegyi">စိုးကြီး (🇲🇲 - ကျား အသံဩဇာ)</option>
+              <option value="sa_u">စာဥ (🇲🇲 - မ အသံကြည်)</option>
+              <option value="thakingyi">သခင်ကြီး (🇲🇲 - ကျား အသံနက်)</option>
+              <option value="chawsu">ချောစု (🇲🇲 - မ အေးဆေး)</option>
+              <option value="choupro">Chou Pro Lay (🇲🇲 - ကျား အသံမြန်)</option>
+              <option value="kayinma">ကရင်မ (🇲🇲 - မ သွက်လက်)</option>
+              <option value="tetpu">တက်ပု (🇲🇲 - ကျား အသံစူး)</option>
+              <option value="nyapsi">ညှပ်စိ (🇲🇲 - မ အသံနက်)</option>
+              <option value="tatei">တာတေ (🇲🇲 - ကျား သည်းထိတ်ရင်ဖို)</option>
+              <option value="james">ဂျိမ်း (🇺🇸 - ကျား)</option>
+              <option value="sophia">ဆိုဖီယာ (🇺🇸 - မ)</option>
+              <option value="michael">မိုက်ကယ် (🇬🇧 - ကျား)</option>
+              <option value="emma">ဂျနီဖာ (🇬🇧 - မ)</option>
+            </select>
+            <!-- Voice Sample Preview Button -->
+            <button class="play-sample-btn" id="previewBtn" onclick="playVoicePreview()" title="နမူနာအသံ နားထောင်မည်">▶</button>
+          </div>
+          <div class="voice-hint">နမူနာအသံကို နားထောင်ရန် ခလုတ်ကို ကိုယ်တိုင်နှိပ်ပြီး ဖွင့်ရပါမည်။</div>
+          <audio id="samplePlayer" style="display: none;"></audio>
         </div>
       </div>
 
@@ -524,7 +541,6 @@ HTML_CONTENT = """
 
   <script>
     let savedPin = localStorage.getItem("tts_pin") || "";
-    let detectedGender = "my-MM-ThihaNeural";
 
     if (savedPin) checkAuth();
 
@@ -586,69 +602,41 @@ HTML_CONTENT = """
       document.getElementById('loginArea').style.display = 'flex';
     }
 
-    function toggleEngine() {
-      const engine = document.getElementById('engineSel').value;
-      const cloneArea = document.getElementById('cloneArea');
-      const voiceSelectWrap = document.getElementById('voiceSelectWrap');
+    // Play Voice Preview Function
+    async function playVoicePreview() {
+      const vKey = document.getElementById('voiceKeySel').value;
+      const btn = document.getElementById('previewBtn');
+      const player = document.getElementById('samplePlayer');
 
-      if (engine === 'clone') {
-        cloneArea.style.display = 'flex';
-        voiceSelectWrap.style.display = 'none';
-      } else {
-        cloneArea.style.display = 'none';
-        voiceSelectWrap.style.display = 'block';
+      btn.innerText = "⏳";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/preview?voice_key=${vKey}&password=${encodeURIComponent(savedPin)}`);
+        if (!res.ok) throw new Error("Preview မရပါ");
+
+        const data = await res.json();
+        const audioBlob = b64toBlob(data.audio_base64, 'audio/mpeg');
+        player.src = URL.createObjectURL(audioBlob);
+        player.play();
+        btn.innerText = "■";
+
+        player.onended = () => {
+          btn.innerText = "▶";
+          btn.disabled = false;
+        };
+      } catch (err) {
+        alert("နမူနာအသံ ဖွင့်မရပါ");
+        btn.innerText = "▶";
+        btn.disabled = false;
       }
     }
 
-    // Audio Analysis & Voice Matching Logic
-    async function analyzeAndCloneAudio(input) {
-      const file = input.files[0];
-      if (!file) return;
-
-      document.getElementById('uploadedFileName').innerText = file.name;
-      const player = document.getElementById('previewVoice');
-      player.src = URL.createObjectURL(file);
-      player.style.display = 'block';
-
-      const badge = document.getElementById('cloneBadge');
-      badge.style.display = 'block';
-      badge.innerText = "🔍 အသံလှိုင်းနှင့် လေသံကို တိုင်းတာစစ်ဆေးနေပါသည်...";
-
-      try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const arrayBuffer = await file.arrayBuffer();
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-        const channelData = audioBuffer.getChannelData(0);
-        let sampleSum = 0;
-        let zeroCrossings = 0;
-
-        for (let i = 0; i < Math.min(channelData.length, 44100 * 5); i++) {
-          sampleSum += Math.abs(channelData[i]);
-          if (i > 0 && ((channelData[i] >= 0 && channelData[i-1] < 0) || (channelData[i] < 0 && channelData[i-1] >= 0))) {
-            zeroCrossings++;
-          }
-        }
-
-        const estFreq = (zeroCrossings / 2) / (Math.min(channelData.length, 44100 * 5) / audioBuffer.sampleRate);
-
-        // အသံကြိမ်နှုန်းအလိုက် ကျား/မ ခွဲခြားသတ်မှတ်ခြင်း
-        if (estFreq > 185) {
-          detectedGender = "my-MM-NilarNeural";
-          const calculatedTone = Math.min(25, Math.max(-15, Math.round((estFreq - 220) / 10)));
-          document.getElementById('toneSlider').value = calculatedTone;
-          badge.innerText = `✨ အမျိုးသမီးအသံ (နီလာအခြေခံ) Tone: ${calculatedTone}Hz အဖြစ် ချိန်ညှိပြီးပါပြီ`;
-        } else {
-          detectedGender = "my-MM-ThihaNeural";
-          const calculatedTone = Math.min(15, Math.max(-25, Math.round((estFreq - 130) / 8)));
-          document.getElementById('toneSlider').value = calculatedTone;
-          badge.innerText = `✨ အမျိုးသားအသံ (သီဟအခြေခံ) Tone: ${calculatedTone}Hz အဖြစ် ချိန်ညှိပြီးပါပြီ`;
-        }
-
-        updateSliders();
-      } catch (err) {
-        badge.innerText = "✨ အသံဖိုင်ကို တင်သွင်းပြီးပါပြီ။ Clone စနစ် သုံးနိုင်ပါပြီ။";
-      }
+    function onVoiceChange() {
+      const player = document.getElementById('samplePlayer');
+      player.pause();
+      document.getElementById('previewBtn').innerText = "▶";
+      document.getElementById('previewBtn').disabled = false;
     }
 
     function updateSliders() {
@@ -685,21 +673,10 @@ HTML_CONTENT = """
 
     async function genAudioAndSRT() {
       const text = document.getElementById('txt').value.trim();
-      const engine = document.getElementById('engineSel').value;
-      let targetVoice = "my-MM-ThihaNeural";
-      let totalTone = parseInt(document.getElementById('toneSlider').value);
-
-      if (engine === 'clone') {
-        targetVoice = detectedGender;
-      } else {
-        const voiceInfo = document.getElementById('voiceSel').value.split('|');
-        targetVoice = voiceInfo[0];
-        const baseToneOffset = parseInt(voiceInfo[1] || "0");
-        totalTone += baseToneOffset;
-      }
-
-      const speed = document.getElementById('speedSlider').value;
-      const vol = document.getElementById('volSlider').value;
+      const vKey = document.getElementById('voiceKeySel').value;
+      const userTone = parseInt(document.getElementById('toneSlider').value);
+      const userSpeed = parseInt(document.getElementById('speedSlider').value);
+      const userVol = parseInt(document.getElementById('volSlider').value);
       const fileName = document.getElementById('fileName').value.trim() || "Myanmar_TTS";
 
       const btn = document.getElementById('btnGen');
@@ -722,11 +699,10 @@ HTML_CONTENT = """
       try {
         const query = new URLSearchParams({
           text: text,
-          engine: engine,
-          voice: targetVoice,
-          pitch: (totalTone >= 0 ? "+" : "") + totalTone + "Hz",
-          rate: (speed >= 0 ? "+" : "") + speed + "%",
-          volume: (vol >= 0 ? "+" : "") + vol + "%",
+          voice_key: vKey,
+          user_pitch: userTone,
+          user_speed: userSpeed,
+          user_vol: userVol,
           password: savedPin
         });
 
@@ -801,6 +777,25 @@ async def verify_password(password: str = ""):
         )
     return {"status": "ok", "user": ALLOWED_PASSWORDS[password]}
 
+# နမူနာအသံ (Preview) ထုတ်ပေးသည့် API
+@app.get("/preview")
+async def preview_voice(voice_key: str = "akolay", password: str = ""):
+    if password in BLOCKED_KEYS or password not in ALLOWED_PASSWORDS:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    profile = VOICE_PROFILES.get(voice_key, VOICE_PROFILES["akolay"])
+    sample_text = "မင်္ဂလာပါ ခင်ဗျာ။ ဒါကတော့ နမူနာ အသံစမ်းသပ်ချက် ဖြစ်ပါတယ်။"
+    if "en-" in profile["base"]:
+        sample_text = "Hello, this is a sample preview voice."
+
+    communicate = edge_tts.Communicate(sample_text, profile["base"], pitch=profile["pitch"], rate=profile["rate"])
+    audio_data = b""
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            audio_data += chunk["data"]
+
+    return {"audio_base64": base64.b64encode(audio_data).decode('utf-8')}
+
 def create_srt_from_text(text: str, total_seconds: float) -> str:
     lines = [l.strip() for l in re.split(r'[\n။၊]+', text) if l.strip()]
     if not lines:
@@ -833,11 +828,10 @@ def create_srt_from_text(text: str, total_seconds: float) -> str:
 @app.get("/generate")
 async def generate(
     text: str, 
-    engine: str = "edge",
-    voice: str = "my-MM-ThihaNeural", 
-    pitch: str = "+0Hz", 
-    rate: str = "+0%", 
-    volume: str = "+0%", 
+    voice_key: str = "akolay",
+    user_pitch: int = 0,
+    user_speed: int = 0,
+    user_vol: int = 0,
     password: str = ""
 ):
     if password in BLOCKED_KEYS or password not in ALLOWED_PASSWORDS:
@@ -846,8 +840,21 @@ async def generate(
             detail="Password မှားယွင်းနေပါသည်"
         )
 
+    profile = VOICE_PROFILES.get(voice_key, VOICE_PROFILES["akolay"])
+
+    # မူလ Preset Pitch/Speed ပေါင်းစပ်တွက်ချက်ခြင်း
+    base_pitch_int = int(re.sub(r'[^-\d]', '', profile["pitch"]) or 0)
+    base_rate_int = int(re.sub(r'[^-\d]', '', profile["rate"]) or 0)
+
+    final_pitch = base_pitch_int + user_pitch
+    final_rate = base_rate_int + user_speed
+
+    pitch_str = f"{final_pitch:+d}Hz"
+    rate_str = f"{final_rate:+d}%"
+    vol_str = f"{user_vol:+d}%"
+
     clean_text = re.sub(r'\[V\d+\]', '', text).strip()
-    communicate = edge_tts.Communicate(clean_text, voice, pitch=pitch, rate=rate, volume=volume)
+    communicate = edge_tts.Communicate(clean_text, profile["base"], pitch=pitch_str, rate=rate_str, volume=vol_str)
     
     audio_data = b""
     async for chunk in communicate.stream():
