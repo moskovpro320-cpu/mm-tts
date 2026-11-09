@@ -3,8 +3,113 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import edge_tts
 
-# သတ်မှတ်ထားသော Password
-MY_PASSWORD = "631378"
+# စက်အလုံး ၁၀၀ အတွက် မတူညီသော ၆ လုံးတွဲ PIN Password များ
+ALLOWED_PASSWORDS = {
+    "631378": "Master Key (ပင်မဖုန်း)",
+    "101234": "ဖုန်း ၁",
+    "102345": "ဖုန်း ၂",
+    "103456": "ဖုန်း ၃",
+    "104567": "ဖုန်း ၄",
+    "105678": "ဖုန်း ၅",
+    "106789": "ဖုန်း ၆",
+    "107890": "ဖုန်း ၇",
+    "108901": "ဖုန်း ၈",
+    "109012": "ဖုန်း ၉",
+    "110123": "ဖုန်း ၁၀",
+    "111234": "ဖုန်း ၁၁",
+    "112345": "ဖုန်း ၁၂",
+    "113456": "ဖုန်း ၁၃",
+    "114567": "ဖုန်း ၁၄",
+    "115678": "ဖုန်း ၁၅",
+    "116789": "ဖုန်း ၁၆",
+    "117890": "ဖုန်း ၁၇",
+    "118901": "ဖုန်း ၁၈",
+    "119012": "ဖုန်း ၁၉",
+    "120123": "ဖုန်း ၂၀",
+    "121234": "ဖုန်း ၂၁",
+    "122345": "ဖုန်း ၂၂",
+    "123456": "ဖုန်း ၂၃",
+    "124567": "ဖုန်း ၂၄",
+    "125678": "ဖုန်း ၂၅",
+    "126789": "ဖုန်း ၂၆",
+    "127890": "ဖုန်း ၂၇",
+    "128901": "ဖုန်း ၂၈",
+    "129012": "ဖုန်း ၂၉",
+    "130123": "ဖုန်း ၃၀",
+    "131234": "ဖုန်း ၃၁",
+    "132345": "ဖုန်း ၃၂",
+    "133456": "ဖုန်း ၃၃",
+    "134567": "ဖုန်း ၃၄",
+    "135678": "ဖုန်း ၃၅",
+    "136789": "ဖုန်း ၃၆",
+    "137890": "ဖုန်း ၃၇",
+    "138901": "ဖုန်း ၃၈",
+    "139012": "ဖုန်း ၃၉",
+    "140123": "ဖုန်း ၄၀",
+    "141234": "ဖုန်း ၄၁",
+    "142345": "ဖုန်း ၄၂",
+    "143456": "ဖုန်း ၄၃",
+    "144567": "ဖုန်း ၄၄",
+    "145678": "ဖုန်း ၄၅",
+    "146789": "ဖုန်း ၄၆",
+    "147890": "ဖုန်း ၄၇",
+    "148901": "ဖုန်း ၄၈",
+    "149012": "ဖုန်း ၄၉",
+    "150123": "ဖုန်း ၅၀",
+    "151234": "ဖုန်း ၅၁",
+    "152345": "ဖုန်း ၅၂",
+    "153456": "ဖုန်း ၅၃",
+    "154567": "ဖုန်း ၅၄",
+    "155678": "ဖုန်း ၅၅",
+    "156789": "ဖုန်း ၅၆",
+    "157890": "ဖုန်း ၅၇",
+    "158901": "ဖုန်း ၅၈",
+    "159012": "ဖုန်း ၅၉",
+    "160123": "ဖုန်း ၆၀",
+    "161234": "ဖုန်း ၆၁",
+    "162345": "ဖုန်း ၆၂",
+    "163456": "ဖုန်း ၆၃",
+    "164567": "ဖုန်း ၆၄",
+    "165678": "ဖုန်း ၆၅",
+    "166789": "ဖုန်း ၆၆",
+    "167890": "ဖုန်း ၆၇",
+    "168901": "ဖုန်း ၆၈",
+    "169012": "ဖုန်း ၆၉",
+    "170123": "ဖုန်း ၇၀",
+    "171234": "ဖုန်း ၇၁",
+    "172345": "ဖုန်း ၇၂",
+    "173456": "ဖုန်း ၇၃",
+    "174567": "ဖုန်း ၇၄",
+    "175678": "ဖုန်း ၇၅",
+    "176789": "ဖုန်း ၇၆",
+    "177890": "ဖုန်း ၇၇",
+    "178901": "ဖုန်း ၇၈",
+    "179012": "ဖုန်း ၇၉",
+    "180123": "ဖုန်း ၈၀",
+    "181234": "ဖုန်း ၈၁",
+    "182345": "ဖုန်း ၈၂",
+    "183456": "ဖုန်း ၈၃",
+    "184567": "ဖုန်း ၈၄",
+    "185678": "ဖုန်း ၈၅",
+    "186789": "ဖုန်း ၈၆",
+    "187890": "ဖုန်း ၈၇",
+    "188901": "ဖုန်း ၈၈",
+    "189012": "ဖုန်း ၈၉",
+    "190123": "ဖုန်း ၉၀",
+    "191234": "ဖုန်း ၉၁",
+    "192345": "ဖုန်း ၉၂",
+    "193456": "ဖုန်း ၉၃",
+    "194567": "ဖုန်း ၉၄",
+    "195678": "ဖုန်း ၉၅",
+    "196789": "ဖုန်း ၉၆",
+    "197890": "ဖုန်း ၉၇",
+    "198901": "ဖုန်း ၉၈",
+    "199012": "ဖုန်း ၉၉",
+    "200123": "ဖုန်း ၁၀၀",
+}
+
+# ဖုန်းတစ်လုံးကို ပိတ်ချင်ပါက PIN ကို ဤနေရာတွင် ထည့်ပါ (ဥပမာ- BLOCKED_KEYS = {"105678"})
+BLOCKED_KEYS = set()
 
 app = FastAPI()
 
@@ -50,7 +155,7 @@ HTML_CONTENT = """
     <div id="login-err"></div>
   </div>
 
-  <!-- အဆင့် ၂ - TTS App Box (Password မှန်မှ ပေါ်မည်) -->
+  <!-- အဆင့် ၂ - TTS App Box -->
   <div class="box" id="appBox" style="display: none;">
     <div class="header-bar">
       <h2 style="margin: 0;">🇲🇲 Myanmar AI TTS</h2>
@@ -67,9 +172,8 @@ HTML_CONTENT = """
   </div>
 
   <script>
-    let savedPwd = sessionStorage.getItem("tts_auth") || "";
+    let savedPwd = localStorage.getItem("tts_auth") || "";
 
-    // စောစောက မှန်ထားပြီးသား ရှိမရှိ စစ်ဆေးခြင်း
     if (savedPwd) {
       checkSavedAuth();
     }
@@ -81,11 +185,11 @@ HTML_CONTENT = """
           document.getElementById('loginBox').style.display = 'none';
           document.getElementById('appBox').style.display = 'block';
         } else {
-          sessionStorage.removeItem("tts_auth");
+          localStorage.removeItem("tts_auth");
           savedPwd = "";
         }
       } catch (e) {
-        sessionStorage.removeItem("tts_auth");
+        localStorage.removeItem("tts_auth");
       }
     }
 
@@ -105,106 +209,4 @@ HTML_CONTENT = """
       err.innerText = "စစ်ဆေးနေပါသည်...";
 
       try {
-        const res = await fetch(`/verify?password=${encodeURIComponent(pwd)}`);
-        if (res.ok) {
-          savedPwd = pwd;
-          sessionStorage.setItem("tts_auth", pwd);
-          err.innerText = "";
-          document.getElementById('loginBox').style.display = 'none';
-          document.getElementById('appBox').style.display = 'block';
-        } else {
-          err.style.color = '#ef4444';
-          err.innerText = "Password မှားယွင်းနေပါသည်။ ပြန်ရိုက်ပါ။";
-        }
-      } catch (e) {
-        err.style.color = '#ef4444';
-        err.innerText = "ဆာဗာနှင့် ချိတ်ဆက်၍ မရပါ";
-      } finally {
-        btn.disabled = false;
-      }
-    }
-
-    function handleLogout() {
-      sessionStorage.removeItem("tts_auth");
-      savedPwd = "";
-      document.getElementById('inputPwd').value = "";
-      document.getElementById('login-err').innerText = "";
-      document.getElementById('appBox').style.display = 'none';
-      document.getElementById('loginBox').style.display = 'block';
-    }
-
-    async function gen() {
-      const text = document.getElementById('txt').value.trim();
-      const voice = document.getElementById('vc').value;
-      const btn = document.getElementById('btn');
-      const status = document.getElementById('status');
-      const aud = document.getElementById('aud');
-
-      if (!text) { 
-        status.style.color = '#ef4444';
-        status.innerText = "စာအရင် ရိုက်ထည့်ပါ"; 
-        return; 
-      }
-
-      btn.disabled = true;
-      aud.style.display = 'none';
-      status.style.color = '#38bdf8';
-      status.innerText = "အသံဖိုင် ဖန်တီးနေပါသည်... ခဏစောင့်ပါ...";
-
-      try {
-        const res = await fetch(`/tts?text=${encodeURIComponent(text)}&voice=${voice}&password=${encodeURIComponent(savedPwd)}`);
-        
-        if (res.status === 401) {
-          handleLogout();
-          document.getElementById('login-err').style.color = '#ef4444';
-          document.getElementById('login-err').innerText = "စကားဝှက် သက်တမ်းကုန်သွားပါပြီ။ ပြန်လည်ရိုက်ထည့်ပါ။";
-          throw new Error("Password မှားယွင်းနေပါသည်");
-        }
-        if (!res.ok) throw new Error("အသံထုတ်မရပါ");
-        
-        const blob = await res.blob();
-        aud.src = URL.createObjectURL(blob);
-        aud.style.display = 'block';
-        aud.play();
-        status.style.color = '#22c55e';
-        status.innerText = "အသံဖိုင် ရပါပြီ။ နားဆင်/ဒေါင်းလုဒ် ဆွဲနိုင်ပါပြီ။";
-      } catch (e) {
-        if (res?.status !== 401) {
-          status.style.color = '#ef4444';
-          status.innerText = e.message;
-        }
-      } finally {
-        btn.disabled = false;
-      }
-    }
-  </script>
-</body>
-</html>
-"""
-
-@app.get("/", response_class=HTMLResponse)
-async def index():
-    return HTML_CONTENT
-
-@app.get("/verify")
-async def verify_password(password: str = ""):
-    if password != MY_PASSWORD:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Password မှားယွင်းနေပါသည်"
-        )
-    return {"status": "ok"}
-
-@app.get("/tts")
-async def tts(text: str, voice: str = "my-MM-ThihaNeural", password: str = ""):
-    if password != MY_PASSWORD:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Password မှားယွင်းနေပါသည်"
-        )
-    communicate = edge_tts.Communicate(text, voice)
-    audio_data = b""
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            audio_data += chunk["data"]
-    return Response(content=audio_data, media_type="audio/mpeg")
+        const res = await fetch
