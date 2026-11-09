@@ -2,11 +2,10 @@ from fastapi import FastAPI, Response, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import edge_tts
-import io
-import zipfile
-import math
+import base64
+import re
 
-# စက်အလုံး ၁၀၀ အတွက် Password များ
+# စက်အလုံး ၁၀၀ အတွက် PIN များ
 ALLOWED_PASSWORDS = {"631378": "Master Admin"}
 for i in range(1, 101):
     pin = f"{100 + i}234"
@@ -32,7 +31,7 @@ HTML_CONTENT = """
   <title>MM TTS SRT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Padauk:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Padauk:wght@400;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -92,6 +91,46 @@ HTML_CONTENT = """
       justify-content: center;
       font-size: 18px;
       cursor: pointer;
+    }
+    /* Hero Header */
+    .hero-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 6px 2px;
+    }
+    .hero-tags {
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .hero-title {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.3;
+      color: #ffffff;
+    }
+    .hero-desc {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .pill {
+      background: #0d1522;
+      border: 1px solid #1e293b;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #cbd5e1;
+      font-weight: 600;
     }
     /* Cards */
     .panel {
@@ -154,7 +193,7 @@ HTML_CONTENT = """
       height: 120px;
       resize: vertical;
     }
-    /* Range Slider */
+    /* Sliders */
     .slider-wrap {
       display: flex;
       flex-direction: column;
@@ -260,28 +299,43 @@ HTML_CONTENT = """
       <div class="gear-btn">⚙</div>
     </div>
 
-    <!-- Login Screen -->
-    <div class="panel" id="loginCard">
-      <div class="panel-head">
-        <div>
-          <div class="panel-tag">VIP ACCESS</div>
-          <div class="panel-title">အကောင့်ဝင်ရန်</div>
+    <!-- Login Area (Hero Header + Login Card) -->
+    <div id="loginArea" style="display: flex; flex-direction: column; gap: 16px;">
+      <!-- Hero Header Banner -->
+      <div class="hero-section">
+        <div class="hero-tags">FASTAPI • EDGE • GEMINI</div>
+        <h1 class="hero-title">စာသားကနေ အသံနဲ့ SRT ကို တစ်နေရာတည်းမှာ ဖန်တီးပါ</h1>
+        <p class="hero-desc">Browser history နဲ့ စက်အားလုံးအတွက် အဆင်ပြေတဲ့ responsive workspace ဖြစ်ပါတယ်။</p>
+        <div class="pills">
+          <div class="pill">MP3 + SRT</div>
+          <div class="pill">40ကျော် Voices</div>
+          <div class="pill">IndexedDB</div>
         </div>
-        <div class="panel-num">⚡</div>
       </div>
-      <div>
-        <div class="label">VIP PIN</div>
-        <input type="password" id="inputPin" placeholder="PIN ထည့်ပါ..." />
+
+      <!-- Login Card Screen -->
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-tag">VIP ACCESS</div>
+            <div class="panel-title">အကောင့်ဝင်ရန်</div>
+          </div>
+          <div style="color: #38bdf8; font-size: 20px;">⚡</div>
+        </div>
+        <div>
+          <div class="label">VIP PIN</div>
+          <input type="password" id="inputPin" placeholder="PIN ထည့်ပါ..." />
+        </div>
+        <button class="btn-main" id="loginBtn" onclick="handleLogin()">ဝင်ရောက်မည် ➔</button>
+        <div id="login-err" style="color: #ef4444; font-size: 13px; text-align: center;"></div>
       </div>
-      <button class="btn-main" id="loginBtn" onclick="handleLogin()">ဝင်ရောက်မည် ➔</button>
-      <div id="login-err" style="color: #ef4444; font-size: 13px; text-align: center;"></div>
     </div>
 
     <!-- Main Workspace (PIN မှန်မှ ပေါ်မည်) -->
     <div id="appWorkspace" style="display: none; flex-direction: column; gap: 16px;">
       
       <div class="user-pill">
-        <span>🟢 <strong id="userLabel" style="color:#5eead4;">VIP User</strong></span>
+        <span>🟢 <strong id="userLabel" style="color:#5eead4;">VIP Member</strong></span>
         <button class="logout-btn" onclick="handleLogout()">Logout</button>
       </div>
 
@@ -425,7 +479,7 @@ HTML_CONTENT = """
         if (res.ok) {
           const data = await res.json();
           document.getElementById('userLabel').innerText = data.user || "VIP Member";
-          document.getElementById('loginCard').style.display = 'none';
+          document.getElementById('loginArea').style.display = 'none';
           document.getElementById('appWorkspace').style.display = 'flex';
         } else {
           localStorage.removeItem("tts_pin");
@@ -455,7 +509,7 @@ HTML_CONTENT = """
           savedPin = pin;
           localStorage.setItem("tts_pin", pin);
           document.getElementById('userLabel').innerText = data.user || "VIP Member";
-          document.getElementById('loginCard').style.display = 'none';
+          document.getElementById('loginArea').style.display = 'none';
           document.getElementById('appWorkspace').style.display = 'flex';
         } else {
           err.style.color = '#ef4444';
@@ -474,7 +528,7 @@ HTML_CONTENT = """
       savedPin = "";
       document.getElementById('inputPin').value = "";
       document.getElementById('appWorkspace').style.display = 'none';
-      document.getElementById('loginCard').style.display = 'flex';
+      document.getElementById('loginArea').style.display = 'flex';
     }
 
     function updateSliders() {
@@ -557,7 +611,7 @@ HTML_CONTENT = """
 
         const data = await res.json();
         
-        // MP3 Audio Player
+        // MP3 Audio
         const audioBlob = b64toBlob(data.audio_base64, 'audio/mpeg');
         const audioUrl = URL.createObjectURL(audioBlob);
         player.src = audioUrl;
@@ -618,11 +672,7 @@ async def verify_password(password: str = ""):
         )
     return {"status": "ok", "user": ALLOWED_PASSWORDS[password]}
 
-import base64
-import re
-
 def create_srt_from_text(text: str, total_seconds: float) -> str:
-    # စာကြောင်းများကို ပိုင်းဖြတ်ခြင်း
     lines = [l.strip() for l in re.split(r'[\n။၊]+', text) if l.strip()]
     if not lines:
         lines = [text]
@@ -635,7 +685,6 @@ def create_srt_from_text(text: str, total_seconds: float) -> str:
     curr_time = 0.0
 
     for i, line in enumerate(lines, start=1):
-        # စာကြောင်းအရှည်အပေါ် မူတည်ပြီး အချိန်တွက်ချက်ပေးခြင်း
         duration = max(1.2, (len(line) / total_chars) * total_seconds)
         start_t = curr_time
         end_t = min(total_seconds, curr_time + duration)
@@ -675,9 +724,7 @@ async def generate(
         if chunk["type"] == "audio":
             audio_data += chunk["data"]
 
-    # ခန့်မှန်း အသံဖိုင် စက္ကန့် တွက်ချက်ခြင်း (MP3 48kbps ခန့်မှန်းခြေ)
     estimated_seconds = max(2.0, len(clean_text) * 0.18)
-
     srt_content = create_srt_from_text(clean_text, estimated_seconds)
     b64_audio = base64.b64encode(audio_data).decode('utf-8')
 
